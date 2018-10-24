@@ -2,7 +2,7 @@
 #include <exception>
 
 
-namespace ScopeGuard {
+namespace SG {
   class UncaughtExceptionCounter {
    private:
     int exceptionCount_;
@@ -16,24 +16,45 @@ namespace ScopeGuard {
     }
   };
 
-  class ScopeGuardByFail {
+  template <typename Ftype, bool executeOnException>
+  class ScopeGuard {
    private:
     UncaughtExceptionCounter exceptionCounter_;
+    Ftype function_;
 
    public:
-    ~ScopeGuardByFail() {
-      if (!exceptionCounter_.isNewUncaughtException()) {
-        std::cout << "EXCEPTION BLYA" << '\n';
-      } else {
-        std::cout << "NUHIYA" << '\n';
+    ScopeGuard(Ftype&& fn)
+        : function_(std::forward<Ftype>(fn))
+    {}
+
+    ~ScopeGuard() noexcept (executeOnException) {
+      if (executeOnException == exceptionCounter_.isNewUncaughtException()) {
+        function_();
       }
     }
   };
+
+  template <typename Ftype>
+  auto ScopeGuardByFail(Ftype&& fn) {
+    return ScopeGuard<Ftype, true>(std::forward<Ftype>(fn));
+  }
+
+  template <typename Ftype>
+  auto ScopeGuardByExit(Ftype&& fn) {
+    return ScopeGuard<Ftype, true>(std::forward<Ftype>(fn));
+  };
+
+  template <typename Ftype>
+  auto ScopeGuardBySuccess(Ftype&& fn) {
+    return ScopeGuard<Ftype, false>(std::forward<Ftype>(fn));
+  };
 }
 
-void kek() {
-  ScopeGuard::ScopeGuardByFail sh;
+void kek() noexcept {
+  auto memes = SG::ScopeGuardByFail([]{ std::cout << "FAIL" << '\n'; });
+//  ScopeGuard::ScopeGuardByFail<std::function<typeid(lambda_kek).name()>> sh(lambda_kek);
   int mems = 228;
+  throw 1;
 }
 
 int main() {
