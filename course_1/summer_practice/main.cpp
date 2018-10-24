@@ -3,61 +3,92 @@
 
 
 namespace SG {
-  class UncaughtExceptionCounter {
-   private:
-    int exceptionCount_;
+  class ConditionDetectorBase {
    public:
-    UncaughtExceptionCounter()
-        : exceptionCount_(std::uncaught_exceptions())
-    {}
+    ConditionDetectorBase()
+        : NumExceptions(std::uncaught_exceptions()) {
+    }
 
-    bool isNewUncaughtException() noexcept {
-      return std::uncaught_exceptions() > exceptionCount_;
+   protected:
+    int NumExceptions;
+  };
+
+  template <class>
+  class ConditionDetector;
+
+  class OnExit {};
+  class OnFail {};
+  class OnSuccess {};
+
+  template <>
+  class ConditionDetector<OnExit> {
+   public:
+    bool needToReact() {
+      return true;
     }
   };
 
-  template <typename Ftype, bool executeOnException>
-  class ScopeGuard {
-   private:
-    UncaughtExceptionCounter exceptionCounter_;
-    Ftype function_;
-
+  template <>
+  class ConditionDetector<OnFail> : public ConditionDetectorBase {
    public:
-    ScopeGuard(Ftype&& fn)
-        : function_(std::forward<Ftype>(fn))
-    {}
+    bool needToReact() {
+      return std::uncaught_exceptions() > NumExceptions;
+    }
+  };
 
-    ~ScopeGuard() noexcept (executeOnException) {
-      if (executeOnException == exceptionCounter_.isNewUncaughtException()) {
-        function_();
+  template <>
+  class ConditionDetector<OnSuccess> : public ConditionDetectorBase {
+   public:
+    bool needToReact() {
+      return NumExceptions == std::uncaught_exceptions();
+    }
+  };
+
+  template <typename TActionType, typename TPolicy>
+  class ScopeGuard {
+   public:
+    ScopeGuard(TActionType&& fn)
+        : ResponseAction_(std::forward<TActionType>(fn)) {
+    }
+
+    ~ScopeGuard() noexcept {
+      if (Detector_.needToReact()) {
+        ResponseAction_();
       }
     }
+
+   private:
+    ConditionDetector<TPolicy> Detector_;
+    TActionType ResponseAction_;
   };
 
   template <typename Ftype>
-  auto ScopeGuardByFail(Ftype&& fn) {
-    return ScopeGuard<Ftype, true>(std::forward<Ftype>(fn));
+  inline auto ScopeGuardOnFail(Ftype&& fn) {
+    return ScopeGuard<Ftype, OnFail>(std::forward<Ftype>(fn));
   }
 
   template <typename Ftype>
-  auto ScopeGuardByExit(Ftype&& fn) {
-    return ScopeGuard<Ftype, true>(std::forward<Ftype>(fn));
+  inline auto ScopeGuardOnExit(Ftype&& fn) {
+    return ScopeGuard<Ftype, OnExit>(std::forward<Ftype>(fn));
   };
 
   template <typename Ftype>
-  auto ScopeGuardBySuccess(Ftype&& fn) {
-    return ScopeGuard<Ftype, false>(std::forward<Ftype>(fn));
+  inline auto ScopeGuardOnSuccess(Ftype&& fn) {
+    return ScopeGuard<Ftype, OnSuccess>(std::forward<Ftype>(fn));
   };
 }
 
-void kek() noexcept {
-  auto memes = SG::ScopeGuardByFail([]{ std::cout << "FAIL" << '\n'; });
-//  ScopeGuard::ScopeGuardByFail<std::function<typeid(lambda_kek).name()>> sh(lambda_kek);
-  int mems = 228;
+void kek() {
+  auto memes = SG::ScopeGuardOnFail([]{ std::cout << "FAIL" << '\n'; });
+  std::cout << "first" << '\n';
   throw 1;
 }
 
 int main() {
-  kek();
+  try {
+    kek();
+  } catch(...) {
+    std::cout << "THE END" << '\n';
+  }
   return 0;
 }
