@@ -47,7 +47,7 @@ class ConditionDetector<OnSuccess> : public ConditionDetectorBase {
 template <typename TActionType, typename TPolicy>
 class ScopeGuard {
  public:
-  ScopeGuard(TActionType&& fn)
+  explicit ScopeGuard(TActionType&& fn)
       : ResponseAction_(std::forward<TActionType>(fn)) {
   }
 
