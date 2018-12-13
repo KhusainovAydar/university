@@ -7,6 +7,6 @@ add_subdirectory(lib/googletest)
 
 include_directories(lib/googletest/googletest/include)
 
-set(SOURCE_FILES main.cpp)
+set(SOURCE_FILES testing.cpp)
 add_executable(scope_guard ${SOURCE_FILES})
 target_link_libraries(scope_guard gtest gtest_main)

@@ -3,78 +3,78 @@
 #include "scope_guard.h"
 
 // Todo как сделать без копипаста, но с другой стороны это ведь unit-testы там не нужная сложная логика
-enum TestEvent {
+
+enum class TestEvent : unsigned char {
   NOTHING,
   EVENT
 };
 
-void TestOnSuccess(TestEvent * event, const bool &doExcept) {
+enum class TestException : unsigned char {
+  ThrowException,
+  NoThrowException
+};
+
+void TestOnSuccess(TestException testExceptionType, TestEvent * event) {
   auto ScopeGuardOnSuccess = SG::setScopeGuardOnSuccess([&event]{
-    *event = EVENT;
+    *event = TestEvent::EVENT;
   });
-  if (doExcept) {
+  if (testExceptionType == TestException::ThrowException) {
     throw std::out_of_range("test_exception");
   }
 }
 
 TEST(ScopeGuardOnSuccessTests, TestOnSuccessNoexcept) {
-  TestEvent event = NOTHING;
-  const bool doExcept = false;
-  EXPECT_NO_THROW(TestOnSuccess(&event, doExcept));
-  EXPECT_EQ(event, EVENT);
+  TestEvent event = TestEvent::NOTHING;
+  EXPECT_NO_THROW(TestOnSuccess(TestException::NoThrowException, &event));
+  EXPECT_EQ(event, TestEvent::EVENT);
 }
 
 TEST(ScopeGuardOnSuccessTests, TestOnSuccessExcept) {
-  TestEvent event = NOTHING;
-  const bool doExcept = true;
-  EXPECT_THROW(TestOnSuccess(&event, doExcept), std::out_of_range);
-  EXPECT_EQ(event, NOTHING);
+  TestEvent event = TestEvent::NOTHING;
+  EXPECT_THROW(TestOnSuccess(TestException::ThrowException, &event), std::out_of_range);
+  EXPECT_EQ(event, TestEvent::NOTHING);
 }
 
 
-void TestOnFail(TestEvent * event, const bool &doExcept) {
+void TestOnFail(TestException testExceptionType, TestEvent * event) {
   auto ScopeGuardOnFail = SG::setScopeGuardOnFail([&event]{
-    *event = EVENT;
+    *event = TestEvent::EVENT;
   });
-  if (doExcept) {
+  if (testExceptionType == TestException::ThrowException) {
     throw std::out_of_range("test_exception");
   }
 }
 
 TEST(ScopeGuardOnFailTests, TestOnFailNoexcept) {
-  TestEvent event = NOTHING;
-  const bool doExcept = false;
-  EXPECT_NO_THROW(TestOnFail(&event, doExcept));
-  EXPECT_EQ(event, NOTHING);
+  TestEvent event = TestEvent::NOTHING;
+  EXPECT_NO_THROW(TestOnFail(TestException::NoThrowException, &event));
+  EXPECT_EQ(event, TestEvent::NOTHING);
 }
 
 TEST(ScopeGuardOnFailTests, TestOnFailExcept) {
-  TestEvent event = NOTHING;
-  const bool doExcept = true;
-  EXPECT_THROW(TestOnFail(&event, doExcept), std::out_of_range);
-  EXPECT_EQ(event, EVENT);
+  TestEvent event = TestEvent::NOTHING;
+  EXPECT_THROW(TestOnFail(TestException::ThrowException, &event), std::out_of_range);
+  EXPECT_EQ(event, TestEvent::EVENT);
 }
 
 
-void TestOnExit(TestEvent * event, const bool &doExcept) {
+void TestOnExit(TestException testExceptionType, TestEvent * event) {
   auto ScopeGuardOnExit = SG::setScopeGuardOnExit([&event]{
-    *event = EVENT;
+    *event = TestEvent::EVENT;
   });
-  if (doExcept) {
+  if (testExceptionType == TestException::ThrowException) {
     throw std::out_of_range("test_exception");
   }
 }
 
 TEST(ScopeGuardOnExitTests, TestOnExitNoexcept) {
-  TestEvent event = NOTHING;
-  const bool doExcept = false;
-  EXPECT_NO_THROW(TestOnExit(&event, doExcept));
-  EXPECT_EQ(event, EVENT);
+  TestEvent event = TestEvent::NOTHING;
+  EXPECT_NO_THROW(TestOnExit(TestException::NoThrowException, &event));
+  EXPECT_EQ(event, TestEvent::EVENT);
 }
 
 TEST(ScopeGuardOnExitTests, TestOnExitExcept) {
-  TestEvent event = NOTHING;
-  const bool doExcept = true;
-  EXPECT_THROW(TestOnExit(&event, doExcept), std::out_of_range);
-  EXPECT_EQ(event, EVENT);
+  TestEvent event = TestEvent::NOTHING;
+  EXPECT_THROW(TestOnExit(TestException::ThrowException, &event), std::out_of_range);
+  EXPECT_EQ(event, TestEvent::EVENT);
 }
